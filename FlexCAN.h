@@ -6,6 +6,7 @@
 #define __FLEXCAN_H__
 
 #include <Arduino.h>
+#include "can.h"
 
 typedef struct CAN_message_t {
   uint32_t id; // can identifier

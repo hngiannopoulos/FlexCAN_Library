@@ -9,7 +9,11 @@
 
 FLEXCAN_callback_t isr_table[32];
 
-/* Implement ISRs */
+
+/* =========================================================================  */
+/* Implement ISRs                                                             */
+/* =========================================================================  */
+
 void can0_message_isr( void )
 {
    uint32_t flags;
@@ -17,6 +21,8 @@ void can0_message_isr( void )
    NVIC_CLEAR_PENDING(IRQ_CAN_MESSAGE);
 
    flags = FLEXCAN0_IFLAG1;
+
+   /* Ignore all bits bellow fifo start bit (these are undefined) */
    flags >>= FIFO_START_INT_BIT; 
    for(uint8_t i = FIFO_START_INT_BIT; i < 32; i++)
    {
@@ -37,14 +43,32 @@ void can0_message_isr( void )
    return;
 }
 
+/*
+void can0_error_isr(void)
+{
+   NVIC_CLEAR_PENDING(IRQ_CAN_MESSAGE);
+   FLEXCAN0_ESR1 |= FLEXCAN_ESR_BIT1_ERR | FLEXCAN_ESR_BIT0_ERR;
+   for (uint8_t i = FLEXCAN_TX_BASE_MB; i < (FLEXCAN_TX_BASE_MB + FLEXCAN_TX_MB_WIDTH); i++) 
+   {  
+      FLEXCAN_abort_mb(i);
+   }
+
+}
+*/
+
+//void can0_error_isr(void);
 //extern void can0_bus_off_isr(void);
 //extern void can0_tx_warn_isr(void);
 //extern void can0_rx_warn_isr(void);
 //extern void can0_wakeup_isr(void);
 
+/* =========================================================================  */
+/* END: Implement ISRs                                                        */
+/* =========================================================================  */
+
 
 /* Local function ONLY. */
-void can_freeze(void)
+void FLEXCAN_freeze(void)
 {
    FLEXCAN0_MCR |= FLEXCAN_MCR_HALT;
    FLEXCAN0_MCR |= FLEXCAN_MCR_FRZ;
@@ -55,7 +79,7 @@ void can_freeze(void)
 }
 
 /* Local function ONLY. */
-void can_unfreeze(void)
+void FLEXCAN_unfreeze(void)
 {
    FLEXCAN0_MCR &= ~(FLEXCAN_MCR_FRZ);
    /* Wait for the hardware to be ready */
@@ -72,21 +96,16 @@ int FLEXCAN_init(FLEXCAN_config_t config)
    CORE_PIN4_CONFIG = PORT_PCR_MUX(2);// | PORT_PCR_PE | PORT_PCR_PS;
 
    // select clock source 16MHz xtal
-   OSC0_CR |= OSC_ERCLKEN;
-   SIM_SCGC6 |=  SIM_SCGC6_FLEXCAN0;
-   FLEXCAN0_CTRL1 &= ~FLEXCAN_CTRL_CLK_SRC;
+   OSC0_CR           |= OSC_ERCLKEN;
+   SIM_SCGC6         |=  SIM_SCGC6_FLEXCAN0;
+   FLEXCAN0_CTRL1    &= ~FLEXCAN_CTRL_CLK_SRC;
 
    /* Set The freeze register to allow for changing settings */ 
 
    /* Enable the Flexcan Module */ 
    FLEXCAN0_MCR &= ~FLEXCAN_MCR_MDIS;
-   /* Request the device go into freeze mode */
-   FLEXCAN0_MCR |= FLEXCAN_MCR_FRZ;
-   FLEXCAN0_MCR |= FLEXCAN_MCR_HALT;
 
-   /* Wait for the module to get out of low power mode */
-   while(FLEXCAN0_MCR & FLEXCAN_MCR_LPM_ACK)
-      ;
+   FLEXCAN_freeze();
 
    /* ENABLE MCR REGISTER */
    FLEXCAN0_MCR |= FLEXCAN_MCR_SRX_DIS;   // disable self-reception
@@ -108,19 +127,23 @@ int FLEXCAN_init(FLEXCAN_config_t config)
    FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_BOFF_MSK;  // ENABLE BUS OFF INTERRUPT MASKB
    NVIC_ENABLE_IRQ(IRQ_CAN_BUS_OFF);
 
-   //FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_ERR_MSK;   // Enable Error INT. Mask
+   FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_ERR_MSK;   // Enable Error INT. Mask
+   NVIC_ENABLE_IRQ(IRQ_CAN_ERROR);
    
    FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_TWRN_MSK;  // Enable TX Warning INT. Mask
    NVIC_ENABLE_IRQ(IRQ_CAN_TX_WARN);
+
+   //NVIC_ENABLE_IRQ(IRQ_CAN_RX_WARN);
+   //NVIC_ENABLE_IRQ(IRQ_CAN_WAKEUP);
+   //NVIC_ENABLE_IRQ(IRQ_CAN_MESSAGE);
 
    //FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_RWRN_MSK;  // Enable RX Warning INT. Mask
    FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_BOFF_REC;  // DISABLE (1) automatic bus off recovery.
    FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_LBUF;      // Send the lowest number buffer is transmitted first.
    FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_SMP;       // Enable tripple bit sampling.
 
-   /* Set to accept all messages */
+   /* DEFAULT: Set to accept all messages */
    FLEXCAN0_RXFGMASK = 0;
-
 
    /* set tx buffers to inactive */
    uint8_t i;
@@ -129,7 +152,7 @@ int FLEXCAN_init(FLEXCAN_config_t config)
       FLEXCAN0_MBn_CS(i) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_INACTIVE);
    }
 
-   can_unfreeze();
+   FLEXCAN_unfreeze();
 
    // FLEXCAN0_IMASK1 - Used for masking Interrupts for mailboxes.
    // FLEXCAN0_IFLAG -  Interrupt flags for mailboxes.
@@ -198,6 +221,8 @@ int FLEXCAN_read_frame(uint8_t mb, FLEXCAN_frame_t *frame)
  */
 int FLEXCAN_mb_write(uint8_t mb, uint8_t code, FLEXCAN_frame_t frame)
 {
+   
+   // TODO: Make sure to check the int bit is cleared.
 
    FLEXCAN0_MBn_CS(mb) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_INACTIVE);
 
@@ -329,43 +354,69 @@ int FLEXCAN_write(FLEXCAN_frame_t frame)
    return FLEXCAN_SUCCESS;
 }
 
-int FLEXCAN_freeze(void)
-{
-   return FLEXCAN_SUCCESS;
-}
-
-int FLEXCAN_unfreeze(void)
-{
-   return FLEXCAN_SUCCESS;
-}
-
 int FLEXCAN_reset(void)
 {
 
-   can_freeze();
+   FLEXCAN_freeze();
+
    /* set tx buffers to ABORT Transmission */
    uint8_t i;
    for (i = FLEXCAN_TX_BASE_MB; i < (FLEXCAN_TX_BASE_MB + FLEXCAN_TX_MB_WIDTH); i++) 
    {  
-      if(FLEXCAN0_MBn_CS(i) == FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_ONCE))
-      {
-         FLEXCAN0_MBn_CS(i) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_ABORT);
-      }
+      FLEXCAN_abort_mb(i);
    }
    /* HALT The teensy to force the messages to abort */
+   FLEXCAN_unfreeze();
 
    for (i = FLEXCAN_TX_BASE_MB; i < (FLEXCAN_TX_BASE_MB + FLEXCAN_TX_MB_WIDTH); i++) 
    {  
       FLEXCAN0_MBn_CS(i) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_INACTIVE);
    }
-   
-   can_unfreeze();
-   // TODO: Abort all pending transmissions.
+
    FLEXCAN0_CTRL1 &= ~(FLEXCAN_CTRL_BOFF_REC);
    FLEXCAN0_CTRL1 |= (FLEXCAN_CTRL_BOFF_REC);
 
    
    return FLEXCAN_SUCCESS;
+}
+
+int FLEXCAN_abort_mb(uint8_t mb)
+{
+
+   int return_val = FLEXCAN_ERROR;
+   /* Clear the corresponding IFLAG */
+
+   /* Check Corresponding IFLAG (Clears if Asserted) */
+   if(mb < 32)
+      FLEXCAN0_IFLAG1 |= (1<<mb);
+   else
+      FLEXCAN0_IFLAG2 |= (1<<(mb-32));
+
+   /* Writes the ABORT */
+   FLEXCAN0_MBn_CS(mb) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_ABORT);
+
+   /* Waits for the IFLAG again this will show that the message was tx or aborted*/ 
+   if(mb < 32)
+   {
+      while(!(FLEXCAN0_IFLAG1 & (1<<mb)))
+         ;
+   }
+   else
+   {
+      while(!(FLEXCAN0_IFLAG2 & (1<<(mb - 32))))
+         ;
+   }
+
+   /* Reads code to see if it was aborted */
+   if(FLEXCAN0_MBn_CS(mb) != FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_ABORT))
+      return_val = FLEXCAN_ERROR;
+
+   if(mb < 32)
+      FLEXCAN0_IFLAG1 |= (1<<mb);
+   else
+      FLEXCAN0_IFLAG2 |= (1<<(mb-32));
+
+   return return_val;
 }
 
 int FLEXCAN_start(void)
