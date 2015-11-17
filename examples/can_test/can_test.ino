@@ -46,9 +46,7 @@ void can0_error_isr(void)
 {
    NVIC_CLEAR_PENDING(IRQ_CAN_MESSAGE);
    FLEXCAN0_ESR1 |= FLEXCAN_ESR_BIT1_ERR | FLEXCAN_ESR_BIT0_ERR;
-   Serial.print(FLEXCAN0_IFLAG1, BIN);
    FLEXCAN_abort_mb(10);   // Abort last sent mailbox.
-   //
 
 }
 
@@ -83,7 +81,7 @@ void setup(){
    FLEXCAN_fifo_reg_callback(can_fifo_callback);
 
 
-   //cmdAdd("status", FLEXCAN_status);
+   cmdAdd("status", FLEXCAN_status);
    cmdAdd("reset", FLEXCAN_cmd_reset);
    cmdAdd("send", FLEXCAN_send);
    
@@ -126,8 +124,6 @@ void FLEXCAN_send(int argc, char ** argv)
    msg.ide = 0;
    msg.srr = 0;
    
-   Serial.print("Argc: ");
-   Serial.println(argc);
    if(argc < 4)
    {
       Serial.println("Usage: send [ARB_ID] [LEN] [DATA_0] ... [DATA_8]");
@@ -135,12 +131,8 @@ void FLEXCAN_send(int argc, char ** argv)
    }
 
    msg.id = strtol(argv[1], NULL, 16);
-   Serial.print("Msg ID: ");
-   Serial.println(msg.id);
 
    msg.dlc = strtol(argv[2], NULL, 16);
-   Serial.print("Msg len: ");
-   Serial.println(msg.dlc);
 
    if((msg.dlc != (argc - 3)) || msg.dlc > 8)
    {
@@ -153,6 +145,7 @@ void FLEXCAN_send(int argc, char ** argv)
       msg.data[i] = strtol(argv[3+i], NULL, 16);
    }
 
+   Serial.println("Sent!");
    FLEXCAN_mb_write(10, FLEXCAN_MB_CODE_TX_ONCE, msg);
 }
 
