@@ -515,4 +515,18 @@ uint32_t FLEXCAN_filter_c(uint8_t * id, uint8_t len)
    return filt_c;
 }
 
+int FLEXCAN_status(FLEXCAN_status_t *status)
+{
+   status->tx_err_cnt = FLEXCAN_ECR_TX_ERR_COUNTER(FLEXCAN0_ECR);
+   status->rx_err_cnt = FLEXCAN_ECR_RX_ERR_COUNTER(FLEXCAN0_ECR);
+
+   /* First read gets all of the errors */
+   status->errors    = FLEXCAN0_ESR1;
+
+   status->tx_wrn    = status->errors & FLEXCAN_ESR_TX_WRN;
+   status->rx_wrn    = status->errors & FLEXCAN_ESR_RX_WRN;
+   status->flt_conf  = FLEXCAN_ESR_get_fault_code(status->errors);
+   
+   return FLEXCAN_SUCCESS;
+}
 

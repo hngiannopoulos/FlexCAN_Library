@@ -15,7 +15,7 @@
 /* Function Prototypes */
 void FLEXCAN_send(int argc, char ** argv);
 void FLEXCAN_cmd_reset(int argc, char ** argv);
-
+void FLEXCAN_cmd_status(int argc, char ** argv);
 
 /* #defines */
 #define LED_PIN 13
@@ -81,7 +81,7 @@ void setup(){
    FLEXCAN_fifo_reg_callback(can_fifo_callback);
 
 
-   cmdAdd("status", FLEXCAN_status);
+   cmdAdd("status", FLEXCAN_cmd_status);
    cmdAdd("reset", FLEXCAN_cmd_reset);
    cmdAdd("send", FLEXCAN_send);
    
@@ -98,13 +98,11 @@ void loop(void)
 }
 
 
-void FLEXCAN_status(int argc, char ** argv) 
+void FLEXCAN_cmd_status(int argc, char ** argv) 
 {
-#if 0
-   CAN_errors_t err;
-   err = CANbus.getErrors();
-   FLEXCAN_printErrors(err);
-#endif
+   FLEXCAN_status_t status;
+   FLEXCAN_status(&status);
+   FLEXCAN_printErrors(&status);
    return;
 
 }
@@ -149,51 +147,44 @@ void FLEXCAN_send(int argc, char ** argv)
    FLEXCAN_mb_write(10, FLEXCAN_MB_CODE_TX_ONCE, msg);
 }
 
-#if 0
-/*
-void FLEXCAN_printErrors(CAN_errors_t err)
+void FLEXCAN_printErrors(FLEXCAN_status_t *status)
 {
+   #define PRINT_BUF_LEN 20 
+   char buff[PRINT_BUF_LEN] = {0};
+   snprintf(buff, PRINT_BUF_LEN, "\tRX err cnt: %d", status->rx_err_cnt);
+   Serial.println(buff);
+
+   snprintf(buff, PRINT_BUF_LEN, "\tTX err cnt: %d", status->tx_err_cnt);
+   Serial.println(buff);
+
+   snprintf(buff, PRINT_BUF_LEN, "\tTX wrn: %d", status->tx_wrn);
+   Serial.println(buff);
+
+   snprintf(buff, PRINT_BUF_LEN, "\tRX wrn: %d", status->rx_wrn);
+   Serial.println(buff);
+
+   snprintf(buff, PRINT_BUF_LEN, "\tbit1 err: %d", status->errors & FLEXCAN_ESR_BIT1_ERR);
+   Serial.println(buff);
+
+   snprintf(buff, PRINT_BUF_LEN, "\tbit0 err: %d", status->errors & FLEXCAN_ESR_BIT0_ERR);
+   Serial.println(buff);
+
+   snprintf(buff, PRINT_BUF_LEN, "\tack err: %d", status->errors & FLEXCAN_ESR_ACK_ERR);
+   Serial.println(buff);
+
+   snprintf(buff, PRINT_BUF_LEN, "\tcrc err: %d", status->errors & FLEXCAN_ESR_CRC_ERR);
+   Serial.println(buff);
+
+   snprintf(buff, PRINT_BUF_LEN, "\tframe err: %d", status->errors & FLEXCAN_ESR_FRM_ERR);
+   Serial.println(buff);
    
-   char buff[20] = {0};
-   snprintf(buff, 20, "RX err cnt: %d", err.rx_err_cnt);
+   snprintf(buff, PRINT_BUF_LEN, "\tstuff err: %d", status->errors & FLEXCAN_ESR_STF_ERR);
    Serial.println(buff);
 
-   snprintf(buff, 20, "TX err cnt: %d", err.tx_err_cnt);
-   Serial.println(buff);
-
-   snprintf(buff, 20, "TX wrn: %d", err.tx_wrn);
-   Serial.println(buff);
-
-   snprintf(buff, 20, "RX wrn: %d", err.rx_wrn);
-   Serial.println(buff);
-
-   snprintf(buff, 20, "bit1 err: %d", err.bit1_err);
-   Serial.println(buff);
-
-   snprintf(buff, 20, "bit0 err: %d", err.bit0_err);
-   Serial.println(buff);
-
-   snprintf(buff, 20, "ack err: %d", err.ack_err);
-   Serial.println(buff);
-
-   snprintf(buff, 20, "crc err: %d", err.crc_err);
-   Serial.println(buff);
-
-   snprintf(buff, 20, "frame err: %d", err.frame_err);
-   Serial.println(buff);
-   
-   snprintf(buff, 20, "stuff err: %d", err.stuff_err);
-   Serial.println(buff);
-
-   snprintf(buff, 20, "fault_conf: %d", err.fault_conf);
-   Serial.println(buff);
-
-   snprintf(buff, 20, "err_int: %d", err.err_int);
+   snprintf(buff, PRINT_BUF_LEN, "\tfault_conf: %d", status->flt_conf);
    Serial.println(buff);
 
    return;
 }
-*/
-#endif
 
 

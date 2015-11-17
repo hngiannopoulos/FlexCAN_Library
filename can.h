@@ -40,6 +40,15 @@ typedef struct {
 
 } FLEXCAN_config_t;
 
+typedef struct {
+   uint8_t tx_err_cnt;
+   uint8_t rx_err_cnt;
+   uint8_t errors;
+   uint8_t tx_wrn;
+   uint8_t rx_wrn;
+   uint8_t flt_conf;
+} FLEXCAN_status_t;
+
 typedef void (*FLEXCAN_rx_callback)(FLEXCAN_frame_t *);
 typedef void (*FLEXCAN_tx_callback)(FLEXCAN_frame_t *);
 typedef void (*FLEXCAN_fifo_callback)(FLEXCAN_frame_t *);
@@ -161,6 +170,12 @@ int FLEXCAN_fifo_read(FLEXCAN_frame_t * frame);
 int FLEXCAN_abort_mb(uint8_t mb);
 
 int FLEXCAN_write(FLEXCAN_frame_t frame);
+
+/** Gets detailed FLEXCAN and writes back to pointer to status struct.
+ * @param The pointer to store the status information.
+ * @return FLEXCAN_SUCCESS or FLEXCAN_ERROR.
+ */
+int FLEXCAN_status(FLEXCAN_status_t * status);
 
 void FLEXCAN_freeze(void);
 void FLEXCAN_unfreeze(void);

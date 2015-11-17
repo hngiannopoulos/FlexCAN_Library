@@ -7,6 +7,7 @@
 
 #include <Arduino.h>
 #include "can.h"
+#include "kinetis_flexcan.h"
 
 typedef struct CAN_message_t {
   uint32_t id; // can identifier
