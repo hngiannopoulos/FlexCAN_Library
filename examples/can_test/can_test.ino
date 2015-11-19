@@ -121,8 +121,9 @@ void FLEXCAN_send(int argc, char ** argv)
    msg.rtr = 0;
    msg.ide = 0;
    msg.srr = 0;
-   
-   if(argc < 4)
+  
+   /* Msg + ID + dlc */
+   if(argc < 3)
    {
       Serial.println("Usage: send [ARB_ID] [LEN] [DATA_0] ... [DATA_8]");
       return;
@@ -131,6 +132,12 @@ void FLEXCAN_send(int argc, char ** argv)
    msg.id = strtol(argv[1], NULL, 16);
 
    msg.dlc = strtol(argv[2], NULL, 16);
+   Serial.print("DLC: ");
+   Serial.println(msg.dlc);
+
+   Serial.print("argc: ");
+   Serial.println(argc);
+
 
    if((msg.dlc != (argc - 3)) || msg.dlc > 8)
    {
