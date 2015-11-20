@@ -48,7 +48,6 @@ void can0_error_isr(void)
    NVIC_CLEAR_PENDING(IRQ_CAN_MESSAGE);
    FLEXCAN0_ESR1 |= FLEXCAN_ESR_BIT1_ERR | FLEXCAN_ESR_BIT0_ERR;
    FLEXCAN_abort_mb(10);   // Abort last sent mailbox.
-
 }
 
 void can_fifo_callback(uint8_t x){
@@ -112,12 +111,12 @@ void FLEXCAN_cmd_status(int argc, char ** argv)
 void FLEXCAN_cmd_reset(int argc, char ** argv)
 {
    FLEXCAN_reset();
+   Serial.println("FLEXCAN reset.");
 }
 
 void FLEXCAN_send(int argc, char ** argv)
 {
    FLEXCAN_frame_t msg;
-   uint64_t payload;
    
    /* Disable RTR and Extended ID */
    msg.rtr = 0;
@@ -152,8 +151,9 @@ void FLEXCAN_send(int argc, char ** argv)
       msg.data[i] = strtol(argv[3+i], NULL, 16);
    }
 
-   Serial.println("Sent!");
    FLEXCAN_mb_write(10, FLEXCAN_MB_CODE_TX_ONCE, msg);
+
+   Serial.println("Sent!");
 }
 
 void echo(int argc, char ** argv)
@@ -172,37 +172,37 @@ void FLEXCAN_printErrors(FLEXCAN_status_t *status)
 {
    #define PRINT_BUF_LEN 20 
    char buff[PRINT_BUF_LEN] = {0};
-   snprintf(buff, PRINT_BUF_LEN, "\tRX err cnt: %d", status->rx_err_cnt);
+   snprintf(buff, PRINT_BUF_LEN, "\tRX err cnt: \t%d", status->rx_err_cnt);
    Serial.println(buff);
 
-   snprintf(buff, PRINT_BUF_LEN, "\tTX err cnt: %d", status->tx_err_cnt);
+   snprintf(buff, PRINT_BUF_LEN, "\tTX err cnt: \t%d", status->tx_err_cnt);
    Serial.println(buff);
 
-   snprintf(buff, PRINT_BUF_LEN, "\tTX wrn: %d", status->tx_wrn);
+   snprintf(buff, PRINT_BUF_LEN, "\tTX wrn: \t%d", status->tx_wrn);
    Serial.println(buff);
 
-   snprintf(buff, PRINT_BUF_LEN, "\tRX wrn: %d", status->rx_wrn);
+   snprintf(buff, PRINT_BUF_LEN, "\tRX wrn: \t%d", status->rx_wrn);
    Serial.println(buff);
 
-   snprintf(buff, PRINT_BUF_LEN, "\tbit1 err: %d", status->errors & FLEXCAN_ESR_BIT1_ERR);
+   snprintf(buff, PRINT_BUF_LEN, "\tbit1 err: \t%d", status->errors & FLEXCAN_ESR_BIT1_ERR);
    Serial.println(buff);
 
-   snprintf(buff, PRINT_BUF_LEN, "\tbit0 err: %d", status->errors & FLEXCAN_ESR_BIT0_ERR);
+   snprintf(buff, PRINT_BUF_LEN, "\tbit0 err: \t%d", status->errors & FLEXCAN_ESR_BIT0_ERR);
    Serial.println(buff);
 
-   snprintf(buff, PRINT_BUF_LEN, "\tack err: %d", status->errors & FLEXCAN_ESR_ACK_ERR);
+   snprintf(buff, PRINT_BUF_LEN, "\tack err: \t%d", status->errors & FLEXCAN_ESR_ACK_ERR);
    Serial.println(buff);
 
-   snprintf(buff, PRINT_BUF_LEN, "\tcrc err: %d", status->errors & FLEXCAN_ESR_CRC_ERR);
+   snprintf(buff, PRINT_BUF_LEN, "\tcrc err: \t%d", status->errors & FLEXCAN_ESR_CRC_ERR);
    Serial.println(buff);
 
-   snprintf(buff, PRINT_BUF_LEN, "\tframe err: %d", status->errors & FLEXCAN_ESR_FRM_ERR);
+   snprintf(buff, PRINT_BUF_LEN, "\tframe err: \t%d", status->errors & FLEXCAN_ESR_FRM_ERR);
    Serial.println(buff);
    
-   snprintf(buff, PRINT_BUF_LEN, "\tstuff err: %d", status->errors & FLEXCAN_ESR_STF_ERR);
+   snprintf(buff, PRINT_BUF_LEN, "\tstuff err: \t%d", status->errors & FLEXCAN_ESR_STF_ERR);
    Serial.println(buff);
 
-   snprintf(buff, PRINT_BUF_LEN, "\tfault_conf: %d", status->flt_conf);
+   snprintf(buff, PRINT_BUF_LEN, "\tfault_conf: \t%d", status->flt_conf);
    Serial.println(buff);
 
    return;

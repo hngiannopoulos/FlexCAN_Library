@@ -161,8 +161,6 @@ int FLEXCAN_fifo_avalible();
  */
 int FLEXCAN_fifo_read(FLEXCAN_frame_t * frame);
 
-//int FLEXCAN_status(FLEXCAN_status_t * status);
-
 /** Attempts to abort transmission for a selected Mailbox.
  * @param The mailbox to try and abort.
  * @return FLEXCAN_SUCCESS If the mailbox was aborted, FLEXCAN_EROR otherwise.
@@ -177,10 +175,7 @@ int FLEXCAN_write(FLEXCAN_frame_t frame);
  */
 int FLEXCAN_status(FLEXCAN_status_t * status);
 
-void FLEXCAN_freeze(void);
-void FLEXCAN_unfreeze(void);
 int FLEXCAN_reset(void);
-int FLEXCAN_start(void);
 
 #endif 
 

@@ -8,7 +8,10 @@
 #define FIFO_START_INT_BIT 5
 
 FLEXCAN_callback_t isr_table[32];
+FLEXCAN_config_t config_g;
 
+void FLEXCAN_freeze(void);
+void FLEXCAN_unfreeze(void);
 
 /* =========================================================================  */
 /* Implement ISRs                                                             */
@@ -17,7 +20,6 @@ FLEXCAN_callback_t isr_table[32];
 void can0_message_isr( void )
 {
    uint32_t flags;
-   //uint32_t flags_shift;
    NVIC_CLEAR_PENDING(IRQ_CAN_MESSAGE);
 
    flags = FLEXCAN0_IFLAG1;
@@ -34,11 +36,11 @@ void can0_message_isr( void )
          FLEXCAN0_IFLAG1 |= (1 << i);
          return;
       }
-
       else
       {
          flags >>= 1;
       }
+
    }
    return;
 }
@@ -91,6 +93,9 @@ void FLEXCAN_unfreeze(void)
 int FLEXCAN_init(FLEXCAN_config_t config)
 {
 
+   /* Save the most recent configuration */
+
+   config_g = config;
    // set up the pins, 3=PTA12=CAN0_TX, 4=PTA13=CAN0_RX
    CORE_PIN3_CONFIG = PORT_PCR_MUX(2);
    CORE_PIN4_CONFIG = PORT_PCR_MUX(2);// | PORT_PCR_PE | PORT_PCR_PS;
@@ -164,6 +169,7 @@ int FLEXCAN_init(FLEXCAN_config_t config)
 /** Deitilize the CAN hardware.
  * @return FLEXCAN_SUCCESS or FLEXCAN_ERROR
  */
+// TODO: 
 int FLEXCAN_deinit(void)
 {
    return FLEXCAN_SUCCESS;
@@ -325,12 +331,6 @@ int FLEXCAN_fifo_read(FLEXCAN_frame_t * frame)
    return FLEXCAN_SUCCESS;
 
 }
-#if 0
-int FLEXCAN_status(FLEXCAN_status_t * status)
-{
-   return FLEXCAN_SUCCESS;
-}
-#endif
 
 int FLEXCAN_write(FLEXCAN_frame_t frame)
 {
@@ -357,26 +357,19 @@ int FLEXCAN_write(FLEXCAN_frame_t frame)
 int FLEXCAN_reset(void)
 {
 
-   FLEXCAN_freeze();
+   uint32_t imask_1;
 
-   /* set tx buffers to ABORT Transmission */
-   uint8_t i;
-   for (i = FLEXCAN_TX_BASE_MB; i < (FLEXCAN_TX_BASE_MB + FLEXCAN_TX_MB_WIDTH); i++) 
-   {  
-      FLEXCAN_abort_mb(i);
-   }
-   /* HALT The teensy to force the messages to abort */
-   FLEXCAN_unfreeze();
+   /* Store some configurations before reseting */
+   imask_1 = FLEXCAN0_IMASK1;
 
-   for (i = FLEXCAN_TX_BASE_MB; i < (FLEXCAN_TX_BASE_MB + FLEXCAN_TX_MB_WIDTH); i++) 
-   {  
-      FLEXCAN0_MBn_CS(i) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_INACTIVE);
-   }
+   FLEXCAN0_MCR |= FLEXCAN_MCR_SOFT_RST;
 
-   FLEXCAN0_CTRL1 &= ~(FLEXCAN_CTRL_BOFF_REC);
-   FLEXCAN0_CTRL1 |= (FLEXCAN_CTRL_BOFF_REC);
-
+   /* Wait for reset to process */
+   while(FLEXCAN0_MCR & FLEXCAN_MCR_SOFT_RST)
+      ;
    
+   FLEXCAN_init(config_g);
+   FLEXCAN0_IMASK1 = imask_1;
    return FLEXCAN_SUCCESS;
 }
 
@@ -417,11 +410,7 @@ int FLEXCAN_abort_mb(uint8_t mb)
       FLEXCAN0_IFLAG2 |= (1<<(mb-32));
 
    return return_val;
-}
 
-int FLEXCAN_start(void)
-{
-   return FLEXCAN_SUCCESS;
 }
 
 uint32_t FLEXCAN_filter_a(uint8_t rtr, uint8_t ide, uint32_t ext_id)
