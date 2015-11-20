@@ -16,6 +16,7 @@
 void FLEXCAN_send(int argc, char ** argv);
 void FLEXCAN_cmd_reset(int argc, char ** argv);
 void FLEXCAN_cmd_status(int argc, char ** argv);
+void echo(int argc, char ** argv);
 
 /* #defines */
 #define LED_PIN 13
@@ -84,6 +85,7 @@ void setup(){
    cmdAdd("status", FLEXCAN_cmd_status);
    cmdAdd("reset", FLEXCAN_cmd_reset);
    cmdAdd("send", FLEXCAN_send);
+   cmdAdd("echo", echo);
    
    pinMode(LED_PIN, OUTPUT);
    digitalWrite(LED_PIN, 0);
@@ -153,6 +155,18 @@ void FLEXCAN_send(int argc, char ** argv)
    Serial.println("Sent!");
    FLEXCAN_mb_write(10, FLEXCAN_MB_CODE_TX_ONCE, msg);
 }
+
+void echo(int argc, char ** argv)
+{
+   for(uint8_t i = 0; i < argc; i++)
+   {
+      Serial.print(i);
+      Serial.print(" : ");
+      Serial.println(argv[i]);
+   }
+}
+
+
 
 void FLEXCAN_printErrors(FLEXCAN_status_t *status)
 {
