@@ -8,6 +8,8 @@
 #define FIFO_START_INT_BIT 5
 
 FLEXCAN_callback_t isr_table[32];
+
+/* Store configuration settings in case of reset */
 FLEXCAN_config_t config_g;
 
 void FLEXCAN_freeze(void);
@@ -113,12 +115,18 @@ int FLEXCAN_init(FLEXCAN_config_t config)
    FLEXCAN_freeze();
 
    /* ENABLE MCR REGISTER */
+
    FLEXCAN0_MCR |= FLEXCAN_MCR_SRX_DIS;   // disable self-reception
+   FLEXCAN0_MCR |= FLEXCAN_MCR_IRMQ;
+
+   FLEXCAN0_MCR &= ~FLEXCAN_MCR_MAXMB_MASK;
+   FLEXCAN0_MCR |= FLEXCAN_MCR_MAXMB(FLEXCAN_MAX_MB);  // Enable the maximum mailbox.
+
    FLEXCAN0_MCR |= FLEXCAN_MCR_FEN;       //enable RX FIFO
    FLEXCAN0_MCR |= FLEXCAN_MCR_WRN_EN;    //Enable FLExcan Warnings
    FLEXCAN0_MCR |= FLEXCAN_MCR_AEN;       // Enable Abort commands for MBs
    FLEXCAN0_MCR |= FLEXCAN_MCR_LPRIO_EN;  // Enable local priority (1)
-   FLEXCAN0_MCR |= FLEXCAN_MCR_IDAM(0);   // (00) ONE FULL (Extended) ID per table element 
+   FLEXCAN0_MCR |= FLEXCAN_MCR_IDAM(FLEXCAN_ID_FILT_TYPE);   // (00) ONE FULL (Extended) ID per table element 
                                           // (01) Two full standard IDS per filter table element.
                                           // (10) Four partial (8-Bit) Standard IDS per table element.
                                           // (11) All Frames Rejected
@@ -150,18 +158,26 @@ int FLEXCAN_init(FLEXCAN_config_t config)
    /* DEFAULT: Set to accept all messages */
    FLEXCAN0_RXFGMASK = 0;
 
-   /* set tx buffers to inactive */
-   uint8_t i;
-   for (i = FLEXCAN_TX_BASE_MB; i < (FLEXCAN_TX_BASE_MB + FLEXCAN_TX_MB_WIDTH); i++) 
-   {
-      FLEXCAN0_MBn_CS(i) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_INACTIVE);
-   }
+
+   FLEXCAN0_CTRL2 |= FLEXCAN_CTRL2_MRP;   // Start Matching through MB first.
+   FLEXCAN_set_rffn(FLEXCAN0_CTRL2, 0);   // 0 - 8 RX FIFOS. 
+                                          // 1 - 16 RX fifos.
+
 
    FLEXCAN_unfreeze();
 
    // FLEXCAN0_IMASK1 - Used for masking Interrupts for mailboxes.
    // FLEXCAN0_IFLAG -  Interrupt flags for mailboxes.
    
+   /* set tx buffers to inactive */
+   uint8_t i;
+   for (i = FLEXCAN_RX_BASE_MB; i < FLEXCAN_MAX_MB; i++) 
+   {
+      /* Clear IFLAGS */
+      FLEXCAN0_IFLAG1 |= (1<<i);
+      FLEXCAN0_MBn_CS(i) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_INACTIVE);
+   }
+
    return FLEXCAN_SUCCESS;
 }
 
@@ -228,9 +244,7 @@ int FLEXCAN_read_frame(uint8_t mb, FLEXCAN_frame_t *frame)
 int FLEXCAN_mb_write(uint8_t mb, uint8_t code, FLEXCAN_frame_t frame)
 {
    
-   // TODO: Make sure to check the int bit is cleared.
-
-   FLEXCAN0_MBn_CS(mb) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_INACTIVE);
+   FLEXCAN_abort_mb(mb);
 
    /* Assume there are no extended ID message */
    FLEXCAN0_MBn_ID(mb) = FLEXCAN_MB_ID_IDSTD(frame.id);
@@ -241,7 +255,7 @@ int FLEXCAN_mb_write(uint8_t mb, uint8_t code, FLEXCAN_frame_t frame)
    /* Assume there are never any Extended ID mEsagesg */
    /* TODO: */
 
-    FLEXCAN0_MBn_CS(mb) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_ONCE)
+    FLEXCAN0_MBn_CS(mb) = FLEXCAN_MB_CS_CODE(code)
                               | FLEXCAN_MB_CS_LENGTH(frame.dlc);
    
    return FLEXCAN_SUCCESS;
@@ -332,25 +346,32 @@ int FLEXCAN_fifo_read(FLEXCAN_frame_t * frame)
 
 }
 
-int FLEXCAN_write(FLEXCAN_frame_t frame)
+int FLEXCAN_write(FLEXCAN_frame_t frame, FLEXCAN_tx_option_t option)
 {
-#if 0
-   int buffer = 0;
-   FLEXCAN0_MBn_CS(buffer) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_INACTIVE);
+   int mb = FLEXCAN_TX_BASE_MB + 1;
 
-   /* Assume there are no extended ID message */
-   FLEXCAN0_MBn_ID(buffer) = FLEXCAN_MB_ID_IDSTD(frame.id);
+   /* Assume MB 10 For now */ 
+   FLEXCAN_mb_write(mb, FLEXCAN_MB_CODE_TX_ONCE, frame);
 
-   FLEXCAN0_MBn_WORD0(buffer) = (frame.data[0]<<24)|(frame.data[1]<<16)|(frame.data[2]<<8)|frame.data[3];
-   FLEXCAN0_MBn_WORD1(buffer) = (frame.data[4]<<24)|(frame.data[5]<<16)|(frame.data[6]<<8)|frame.data[7];
+   switch(option)
+   {
+      case TX_ONCE:                 /* TX Once */
+         if(FLEXCAN_abort_mb(mb) != FLEXCAN_TX_ABORTED)
+            return FLEXCAN_TX_SUCCESS;
 
-   /* Assume there are never any Extended ID mEsagesg */
-   /* TODO: */
+         else
+            return FLEXCAN_TX_ABORTED;
+         
+         break;
 
-    FLEXCAN0_MBn_CS(buffer) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_ONCE)
-                              | FLEXCAN_MB_CS_LENGTH(frame.dlc);
-#endif
-   
+      case TX_BEST_EFFORT:          /* TX Until DEAD */
+         /* Just Let it go and return */
+         break;
+
+      default:
+         break;
+
+   }
    return FLEXCAN_SUCCESS;
 }
 
@@ -376,7 +397,7 @@ int FLEXCAN_reset(void)
 int FLEXCAN_abort_mb(uint8_t mb)
 {
 
-   int return_val = FLEXCAN_ERROR;
+   int return_val = FLEXCAN_TX_ABORTED;
    /* Clear the corresponding IFLAG */
 
    /* Check Corresponding IFLAG (Clears if Asserted) */
@@ -402,7 +423,7 @@ int FLEXCAN_abort_mb(uint8_t mb)
 
    /* Reads code to see if it was aborted */
    if(FLEXCAN0_MBn_CS(mb) != FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_ABORT))
-      return_val = FLEXCAN_ERROR;
+      return_val = FLEXCAN_TX_SUCCESS;
 
    if(mb < 32)
       FLEXCAN0_IFLAG1 |= (1<<mb);

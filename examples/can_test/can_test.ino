@@ -11,8 +11,7 @@
 #include <Cmd.h>
 #include <WProgram.h>
 
-
-/* Function Prototypes */
+/* CMDArduino Function Prototypes */
 void FLEXCAN_send(int argc, char ** argv);
 void FLEXCAN_cmd_reset(int argc, char ** argv);
 void FLEXCAN_cmd_status(int argc, char ** argv);
@@ -47,7 +46,17 @@ void can0_error_isr(void)
 {
    NVIC_CLEAR_PENDING(IRQ_CAN_MESSAGE);
    FLEXCAN0_ESR1 |= FLEXCAN_ESR_BIT1_ERR | FLEXCAN_ESR_BIT0_ERR;
-   FLEXCAN_abort_mb(10);   // Abort last sent mailbox.
+   /*
+   if(FLEXCAN_abort_mb(10) == FLEXCAN_SUCCESS)
+   {
+      Serial.println("Message Aborted");
+   }
+   else
+   {
+      Serial.println("Message Abort Failed");
+
+   }
+   */
 }
 
 void can_fifo_callback(uint8_t x){
@@ -62,6 +71,12 @@ void can_fifo_callback(uint8_t x){
 
 }
 
+void flexcan_cb_030(uint8_t mb){
+   FLEXCAN0_MBn_CS(mb) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_RX_EMPTY);
+   Serial.println("Recieved a 030");
+   return;
+}
+
 /* Start execution here. */
 void setup(){
    
@@ -71,15 +86,25 @@ void setup(){
    //int ret_val;
    FLEXCAN_config_t can_config;
 
+// IF you're using a 16mhz clock 
    can_config.presdiv   = 1;  /*!< Prescale division factor. */
    can_config.propseg   = 2;  /*!< Prop Seg length. */
    can_config.rjw       = 1;  /*!< Sychronization Jump Width*/
-   can_config.pseg_1   = 7;  /*!< Phase 1 length */
-   can_config.pseg_2   = 3;  /*!< Phase 2 length */
+   can_config.pseg_1    = 7;  /*!< Phase 1 length */
+   can_config.pseg_2    = 3;  /*!< Phase 2 length */
 
    FLEXCAN_init(can_config);
    FLEXCAN_fifo_reg_callback(can_fifo_callback);
+   
+   FLEXCAN_frame_t cb_frame_a; 
+   cb_frame_a.id = 0x0030;
+   cb_frame_a.srr = 0;
+   cb_frame_a.ide = 0;
+   cb_frame_a.rtr = 0;
 
+   /* YEAH */
+   FLEXCAN_mb_write(FLEXCAN_RX_BASE_MB + 1, FLEXCAN_MB_CODE_RX_EMPTY, cb_frame_a);
+   FLEXCAN_mb_reg_callback(FLEXCAN_RX_BASE_MB + 1, flexcan_cb_030);
 
    cmdAdd("status", FLEXCAN_cmd_status);
    cmdAdd("reset", FLEXCAN_cmd_reset);
@@ -117,6 +142,7 @@ void FLEXCAN_cmd_reset(int argc, char ** argv)
 void FLEXCAN_send(int argc, char ** argv)
 {
    FLEXCAN_frame_t msg;
+   int return_code;
    
    /* Disable RTR and Extended ID */
    msg.rtr = 0;
@@ -151,9 +177,17 @@ void FLEXCAN_send(int argc, char ** argv)
       msg.data[i] = strtol(argv[3+i], NULL, 16);
    }
 
-   FLEXCAN_mb_write(10, FLEXCAN_MB_CODE_TX_ONCE, msg);
+   return_code = FLEXCAN_write(msg, TX_ONCE);
 
-   Serial.println("Sent!");
+   if(return_code == FLEXCAN_TX_ABORTED)
+   {
+      Serial.println("Transmission Aborted");
+   }
+
+   else
+   {
+      Serial.println("Transmission Successful");
+   }
 }
 
 void echo(int argc, char ** argv)
