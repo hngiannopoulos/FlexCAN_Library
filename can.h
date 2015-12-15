@@ -22,6 +22,11 @@
 #define FLEXCAN_RX_MB_WIDTH         5        /*!< Number of Mailboxes allocated for reception Callbacks. */
 #define FLEXCAN_TX_BASE_MB          (FLEXCAN_RX_BASE_MB + FLEXCAN_RX_MB_WIDTH + 1)     /*!< Base mailbox for tx. */
 #define FLEXCAN_TX_MB_WIDTH         (FLEXCAN_MAX_MB - FLEXCAN_TX_BASE_MB) /*!< Number of mailboxes allocated for transmission. */
+
+// NOTE: Due to the arduino/teensyduino control over clock peripherals in the TEENSY,
+// I do not think that it is possible to use more than 15 mailboxes. To do so you would need 
+// to run the FLEXCAN module from a clock faster than 16Mhz? Which is what the perihperal clock 
+// is set to.
 #define FLEXCAN_MAX_MB              15
 
 /* Interrupts */

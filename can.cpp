@@ -143,7 +143,7 @@ int FLEXCAN_init(FLEXCAN_config_t config)
    FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_ERR_MSK;   // Enable Error INT. Mask
    NVIC_ENABLE_IRQ(IRQ_CAN_ERROR);
    
-   FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_TWRN_MSK;  // Enable TX Warning INT. Mask
+   FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_TWRN_MSK;  // Enable TX Warningtg INT. Mask
    NVIC_ENABLE_IRQ(IRQ_CAN_TX_WARN);
 
    //NVIC_ENABLE_IRQ(IRQ_CAN_RX_WARN);
@@ -160,9 +160,9 @@ int FLEXCAN_init(FLEXCAN_config_t config)
 
 
    FLEXCAN0_CTRL2 |= FLEXCAN_CTRL2_MRP;   // Start Matching through MB first.
+
    FLEXCAN_set_rffn(FLEXCAN0_CTRL2, 0);   // 0 - 8 RX FIFOS. 
                                           // 1 - 16 RX fifos.
-
 
    FLEXCAN_unfreeze();
 

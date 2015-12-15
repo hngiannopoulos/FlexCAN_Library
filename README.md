@@ -21,6 +21,50 @@ Please add parts you are using successfully with Teensy 3.1 to this list.
 - Microchip MCP2551 on 5V (reported at 500KBPS)
 - Linear LT1796 on 5V (not speedtested)
 
+
+###Driver API
+
+####Initiallization Commands
+**int FLEXCAN\_init(FLEXCAN\_config\_t config)**
+**int FLEXCAN\_deinit(void)**
+
+####FIFO Commands
+**FLEXCAN\_fifo\_avalible()**
+**FLEXCAN\_fifo\_read(FLEXCAN\_frame\_t \*frame)**
+**FLEXCAN\_fifo\_reg\_callbacl(FLEXCAN\_callback\_t cb)**
+
+
+**int FLEXCAN\_set\_fifo\_filter(uint8\_t n, uint32\_t filter, uint32\_t mask)**
+**uint32\_t FLEXCAN\_filter\_a(uint8\_t rtr, uint8\_t ide, uint32\_t ext\_id)**
+**uint32\_t FLEXCAN\_filter\_b(uint8\_t rtr\_a,
+                           uint8\_t rtr\_a, 
+                           uint8\_t ide\_b, 
+                           uint16\_t id\_a,
+                           uint16\_t id\_b)**
+
+**uint32\_t FLEXCAN\_filter\_c(uint8\_t * id, uint8\_t len)**
+
+
+
+####READ Commands
+**FLEXCAN\_read\_frame(uint8\_t mb, FLEXCAN\_frame\_t \*frame)**
+
+####Write Commands
+**FLEXCAN\_write(FLEXCAN\_frame\_t frame, FLEXCAN\_tx\_option\_t option)**
+**FLEXCAN\_abort\_mb(uint8\_t mb)**
+
+
+####Misc.
+**FLEXCAN\_status(FLEXCAN\_status\_t * status)**
+
+**FLEXCAN\_reset(void)**
+
+**FLEXCAN\_mb\_reg\_callback(uint8\_t mb, FLEXCAN\_callback\_t cb)**
+**FLEXCAN\_mb\_unreg\_callback(uint8\_t mb)**
+**FLEXCAN\_mb\_read(uint8\_t mb, uint8\_t \* code, uint16\_t \*timestamp, FLEXCAN\_frame\_t \* frame)**
+**FLEXCAN\_mb\_write(uint8\_t mb, uint8\_t code, FLEXCAN\_frame\_t \* frame)**
+
+<!---
 ###Driver API
 **begin()**
 Enable the CAN to start actively participating on the CANbus.
@@ -60,3 +104,4 @@ The timeout monitoring mechanism calls **yield()** until a buffer is found or th
 ###In-order Transmission
 Caller blocking can be used to **write()** frames guaranteed in-order to the bus. When caller blocking is selected for **write()** (non-zero timeout specified), a single hardware transmit buffer is used.
 
+-->
