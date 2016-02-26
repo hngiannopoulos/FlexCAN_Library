@@ -109,8 +109,8 @@ void setup(){
    cb_frame_a.rtr = 0;
 
    /* YEAH */
-   FLEXCAN_mb_write(FLEXCAN_RX_BASE_MB + 1, FLEXCAN_MB_CODE_RX_EMPTY, cb_frame_a);
-   FLEXCAN_mb_reg_callback(FLEXCAN_RX_BASE_MB + 1, flexcan_cb_030);
+   //FLEXCAN_mb_write(FLEXCAN_RX_BASE_MB + 1, FLEXCAN_MB_CODE_RX_EMPTY, cb_frame_a);
+   //FLEXCAN_mb_reg_callback(FLEXCAN_RX_BASE_MB + 1, flexcan_cb_030);
 
    cmdAdd("status", FLEXCAN_cmd_status);
    cmdAdd("reset", FLEXCAN_cmd_reset);

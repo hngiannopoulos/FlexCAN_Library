@@ -178,6 +178,13 @@ int FLEXCAN_init(FLEXCAN_config_t config)
       FLEXCAN0_MBn_CS(i) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_INACTIVE);
    }
 
+   /* Initiallize all the FIFO Receive filters to accept all messages */
+   for( i = 0; i < 128; i++)
+   {
+      FLEXCAN0_IDFLT_TAB(i) = 0;
+
+   }
+
    return FLEXCAN_SUCCESS;
 }
 
