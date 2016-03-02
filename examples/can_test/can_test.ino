@@ -20,6 +20,7 @@ void stomper_test_arb(int argc, char ** argv);
 void stomper_test_arb_rang(int argc, char ** argv);
 void stomper_test_exclude(int argc, char ** argv);
 void stomper_test_exclude_range(int argc, char ** argv);
+void identify(int argc, char** argv);
 
 
 /* #defines */
@@ -85,6 +86,8 @@ void flexcan_cb_030(uint8_t mb){
 
 /* Start execution here. */
 void setup(){
+   pinMode(LED_PIN, OUTPUT);
+   digitalWrite(LED_PIN, LOW);
    
    Serial.begin(115200);
    cmdInit(&Serial);
@@ -119,6 +122,7 @@ void setup(){
    cmdAdd("test_arb", stomper_test_arb);
    cmdAdd("test_arb_range", stomper_test_arb_range);
    cmdAdd("test_exclude", stomper_test_exclude);
+   cmdAdd("id", identify);
    
    pinMode(LED_PIN, OUTPUT);
    digitalWrite(LED_PIN, 0);
@@ -132,6 +136,16 @@ void loop(void)
    cmdPoll();
 }
 
+void identify(int argc, char** argv){
+   for(int i = 0; i < 5; i++)
+   {
+      digitalWrite(LED_PIN, HIGH);
+      delay(100);
+      digitalWrite(LED_PIN, LOW);
+      delay(100);
+   }
+
+}
 
 void FLEXCAN_cmd_status(int argc, char ** argv) 
 {
