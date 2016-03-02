@@ -157,7 +157,22 @@ int FLEXCAN_init(FLEXCAN_config_t config)
 
    /* DEFAULT: Set to accept all messages */
    FLEXCAN0_RXFGMASK = 0;
+   //FLEXCAN0_RXFIR = 0;
+   FLEXCAN0_RXMGMASK = 0;
 
+   /* Initiallize all the FIFO Receive filters to accept all messages */
+   uint8_t i;
+   for( i = 0; i < 32; i++)
+   {
+      FLEXCAN0_IDFLT_TAB(i) = 0;
+
+   }
+
+   for( i = 0; i < 16; i++)
+   {
+      FLEXCAN0_RXIMRn(i) = 0;
+
+   }
 
    FLEXCAN0_CTRL2 |= FLEXCAN_CTRL2_MRP;   // Start Matching through MB first.
 
@@ -170,7 +185,6 @@ int FLEXCAN_init(FLEXCAN_config_t config)
    // FLEXCAN0_IFLAG -  Interrupt flags for mailboxes.
    
    /* set tx buffers to inactive */
-   uint8_t i;
    for (i = FLEXCAN_RX_BASE_MB; i < FLEXCAN_MAX_MB; i++) 
    {
       /* Clear IFLAGS */
@@ -178,12 +192,6 @@ int FLEXCAN_init(FLEXCAN_config_t config)
       FLEXCAN0_MBn_CS(i) = FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_INACTIVE);
    }
 
-   /* Initiallize all the FIFO Receive filters to accept all messages */
-   for( i = 0; i < 128; i++)
-   {
-      FLEXCAN0_IDFLT_TAB(i) = 0;
-
-   }
 
    return FLEXCAN_SUCCESS;
 }
