@@ -10,6 +10,7 @@
 
 #define FLEXCAN_SUCCESS       0     /*!< */
 #define FLEXCAN_ERROR         1     /*!< */
+#define FLEXCAN_TX_TIMEOUT    9  /*!< */
 #define FLEXCAN_FIFO_EMPTY    0     /*!< */
 #define FLEXCAN_TX_ABORTED    2     /*!< */
 #define FLEXCAN_TX_SUCCESS    0     /*!< */
@@ -21,7 +22,8 @@
 #define FLEXCAN_RX_BASE_MB          8        /*!< Lowest MB used for RX callbacks.   */ 
 #define FLEXCAN_RX_MB_WIDTH         5        /*!< Number of Mailboxes allocated for reception Callbacks. */
 #define FLEXCAN_TX_BASE_MB          (FLEXCAN_RX_BASE_MB + FLEXCAN_RX_MB_WIDTH + 1)     /*!< Base mailbox for tx. */
-#define FLEXCAN_TX_MB_WIDTH         (FLEXCAN_MAX_MB - FLEXCAN_TX_BASE_MB) /*!< Number of mailboxes allocated for transmission. */
+#define FLEXCAN_TX_MB_WIDTH         (FLEXCAN_MAX_MB - FLEXCAN_TX_BASE_MB)     /*!< Number of mailboxes allocated for transmission. */
+#define FLEXCAN_TX_MAX_RETRIES      6
 
 // NOTE: Due to the arduino/teensyduino control over clock peripherals in the TEENSY,
 // I do not think that it is possible to use more than 15 mailboxes. To do so you would need 

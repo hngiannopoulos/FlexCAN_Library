@@ -348,6 +348,7 @@ int FLEXCAN_fifo_avalible()
  */
 int FLEXCAN_fifo_read(FLEXCAN_frame_t * frame)
 {
+
    if(!FLEXCAN_fifo_avalible())
    {
       return FLEXCAN_FIFO_EMPTY;
@@ -361,11 +362,39 @@ int FLEXCAN_fifo_read(FLEXCAN_frame_t * frame)
 
 }
 
+
+/* Blocking !!!!! */
 int FLEXCAN_write(FLEXCAN_frame_t frame, FLEXCAN_tx_option_t option)
 {
-   int mb = FLEXCAN_TX_BASE_MB + 1;
 
-   /* Assume MB 10 For now */ 
+   /* find a mailbox */
+   int mb = -1;
+   uint32_t mb_code; 
+   uint8_t retries;
+   uint8_t i;
+   
+   for(retries = 0; retries < FLEXCAN_TX_MAX_RETRIES; retries++)
+   {
+      for(i = FLEXCAN_TX_BASE_MB; i < FLEXCAN_MAX_MB; i++)
+      {
+         mb_code = FLEXCAN0_MBn_CS(i) & FLEXCAN_MB_CS_CODE_MASK;
+
+         /* Check to see if the mailbox is inactive */
+         if (mb_code == FLEXCAN_MB_CS_CODE(FLEXCAN_MB_CODE_TX_INACTIVE)) 
+         {
+            mb = i;
+            break;
+         }
+      }
+      /* Check to see if you found a mailbox */
+      if(mb != -1)
+         break;
+   }
+
+   /* Could Not Find MAILBOX for TX !!!! */
+   if(mb == -1)
+      return FLEXCAN_TX_TIMEOUT;
+
    FLEXCAN_mb_write(mb, FLEXCAN_MB_CODE_TX_ONCE, frame);
 
    switch(option)
