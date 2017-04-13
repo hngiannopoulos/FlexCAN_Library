@@ -140,11 +140,11 @@ int FLEXCAN_init(FLEXCAN_config_t config)
    FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_BOFF_MSK;  // ENABLE BUS OFF INTERRUPT MASKB
    NVIC_ENABLE_IRQ(IRQ_CAN_BUS_OFF);
 
-   FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_ERR_MSK;   // Enable Error INT. Mask
-   NVIC_ENABLE_IRQ(IRQ_CAN_ERROR);
+   //FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_ERR_MSK;   // Enable Error INT. Mask
+   //NVIC_ENABLE_IRQ(IRQ_CAN_ERROR);
    
-   FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_TWRN_MSK;  // Enable TX Warningtg INT. Mask
-   NVIC_ENABLE_IRQ(IRQ_CAN_TX_WARN);
+   //FLEXCAN0_CTRL1 |= FLEXCAN_CTRL_TWRN_MSK;  // Enable TX Warningtg INT. Mask
+   //NVIC_ENABLE_IRQ(IRQ_CAN_TX_WARN);
 
    //NVIC_ENABLE_IRQ(IRQ_CAN_RX_WARN);
    //NVIC_ENABLE_IRQ(IRQ_CAN_WAKEUP);
@@ -261,17 +261,35 @@ int FLEXCAN_mb_write(uint8_t mb, uint8_t code, FLEXCAN_frame_t frame)
    
    FLEXCAN_abort_mb(mb);
 
-   /* Assume there are no extended ID message */
-   FLEXCAN0_MBn_ID(mb) = FLEXCAN_MB_ID_IDSTD(frame.id);
-
    FLEXCAN0_MBn_WORD0(mb) = (frame.data[0]<<24)|(frame.data[1]<<16)|(frame.data[2]<<8)|frame.data[3];
    FLEXCAN0_MBn_WORD1(mb) = (frame.data[4]<<24)|(frame.data[5]<<16)|(frame.data[6]<<8)|frame.data[7];
 
-   /* Assume there are never any Extended ID mEsagesg */
-   /* TODO: */
+   /* Assume there are no extended ID message */
+   if(frame.ide)
+   {
+      FLEXCAN0_MBn_ID(mb) = (FLEXCAN_MB_ID_EXT_MASK & frame.id);
+   }
+   else
+   {
+      FLEXCAN0_MBn_ID(mb) = FLEXCAN_MB_ID_IDSTD(frame.id);
+   }
 
-    FLEXCAN0_MBn_CS(mb) = FLEXCAN_MB_CS_CODE(code)
-                              | FLEXCAN_MB_CS_LENGTH(frame.dlc);
+   /* ASSUME no RTR Stuff */
+
+   /* Write the code / DLC / IDE & SRR bits */
+   if(frame.ide)
+   {
+      FLEXCAN0_MBn_CS(mb) = FLEXCAN_MB_CS_CODE(code) 
+         | FLEXCAN_MB_CS_LENGTH(frame.dlc) 
+         | FLEXCAN_MB_CS_IDE 
+         | FLEXCAN_MB_CS_SRR;
+   }
+   else
+   {
+      FLEXCAN0_MBn_CS(mb) = FLEXCAN_MB_CS_CODE(code)
+                           | FLEXCAN_MB_CS_LENGTH(frame.dlc);
+
+   }
    
    return FLEXCAN_SUCCESS;
 }
