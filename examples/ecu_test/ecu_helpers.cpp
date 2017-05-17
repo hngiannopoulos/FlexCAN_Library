@@ -1,4 +1,5 @@
 
+#if 0
 #include "ecu_helpers.h"
 #include <EEPROM.h>
 #include <can.h>
@@ -73,6 +74,14 @@ void ecu_run(uint8_t len)
          if(return_code == FLEXCAN_TX_TIMEOUT)
          {
             Serial.println("Message Transmit Timeout");
+            FLEXCAN_reset();
+
+         }
+         else if(return_code == FLEXCAN_TX_ABORTED)
+         {
+            Serial.println("Message ABORTED Timeout");
+            FLEXCAN_reset();
+
          }
 
          table[i].last_fired = millis();
@@ -192,3 +201,4 @@ void ecu_identify(int argc, char** argv){
    }
 
 }
+#endif

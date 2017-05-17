@@ -1,6 +1,7 @@
 #ifndef _ECU_HELPERS_H_
 #define _ECU_HELPERS_H_
 
+#if 0
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <can.h>
@@ -41,5 +42,6 @@ void change_ecu_status(int argc, char ** argv);
 void ecu_init();
 void ecu_run( uint8_t len);
 
+#endif
 #endif
 
