@@ -236,7 +236,7 @@ int FLEXCAN_read_frame(uint8_t mb, FLEXCAN_frame_t *frame)
 
    if(frame->dlc > 4)
    {
-      data_in = FLEXCAN0_MBn_WORD0(mb);
+      data_in = FLEXCAN0_MBn_WORD1(mb);
       frame->data[7] = data_in & 0xFF;
       data_in >>= 8;
       frame->data[6] = data_in & 0xFF;
